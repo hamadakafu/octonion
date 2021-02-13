@@ -42,26 +42,59 @@ impl Arbitrary for Octonion {
 
 impl Octonion {
     pub fn new_with_bigint(
-        a0: BigInt,
-        a1: BigInt,
-        a2: BigInt,
-        a3: BigInt,
-        a4: BigInt,
-        a5: BigInt,
-        a6: BigInt,
-        a7: BigInt,
+        mut a0: BigInt,
+        mut a1: BigInt,
+        mut a2: BigInt,
+        mut a3: BigInt,
+        mut a4: BigInt,
+        mut a5: BigInt,
+        mut a6: BigInt,
+        mut a7: BigInt,
     ) -> Self {
+        a0 %= &*M;
+        a1 %= &*M;
+        a2 %= &*M;
+        a3 %= &*M;
+        a4 %= &*M;
+        a5 %= &*M;
+        a6 %= &*M;
+        a7 %= &*M;
+        if a0 < BigInt::default() {
+            a0 += &*M;
+        }
+        if a1 < BigInt::default() {
+            a1 += &*M;
+        }
+        if a2 < BigInt::default() {
+            a2 += &*M;
+        }
+        if a3 < BigInt::default() {
+            a3 += &*M;
+        }
+        if a4 < BigInt::default() {
+            a4 += &*M;
+        }
+        if a5 < BigInt::default() {
+            a5 += &*M;
+        }
+        if a6 < BigInt::default() {
+            a6 += &*M;
+        }
+        if a7 < BigInt::default() {
+            a7 += &*M;
+        }
         Self {
-            a0: a0 % &*M,
-            a1: a1 % &*M,
-            a2: a2 % &*M,
-            a3: a3 % &*M,
-            a4: a4 % &*M,
-            a5: a5 % &*M,
-            a6: a6 % &*M,
-            a7: a7 % &*M,
+            a0,
+            a1,
+            a2,
+            a3,
+            a4,
+            a5,
+            a6,
+            a7,
         }
     }
+
     pub fn is_zero(&self) -> bool {
         let zero = BigInt::from(0);
         self.a0 == zero
@@ -98,6 +131,19 @@ impl Octonion {
             BigInt::from(0),
             BigInt::from(0),
         )
+    }
+
+    /// |self|^2
+    pub fn norm2(&self) -> BigInt {
+        (self.a0.clone() * self.a0.clone()
+            + self.a1.clone() * self.a1.clone()
+            + self.a2.clone() * self.a2.clone()
+            + self.a3.clone() * self.a3.clone()
+            + self.a4.clone() * self.a4.clone()
+            + self.a5.clone() * self.a5.clone()
+            + self.a6.clone() * self.a6.clone()
+            + self.a7.clone() * self.a7.clone())
+            % &*M
     }
 }
 
@@ -275,7 +321,7 @@ impl Mul for Octonion {
             - self.a2.clone() * rhs.a1.clone()
             + self.a4.clone() * rhs.a7.clone()
             - self.a7.clone() * rhs.a4.clone()
-            + self.a5.clone() * rhs.a6.clone()
+            - self.a5.clone() * rhs.a6.clone()
             + self.a6.clone() * rhs.a5.clone();
         let mut a4 = self.a0.clone() * rhs.a4.clone() + self.a4.clone() * rhs.a0.clone()
             - self.a1.clone() * rhs.a5.clone()
@@ -368,6 +414,54 @@ impl MulAssign for Octonion {
     }
 }
 
+impl Mul<Octonion> for &BigInt {
+    type Output = Octonion;
+    fn mul(self, rhs: Octonion) -> Self::Output {
+        let mut a0 = (rhs.a0 * self) % &*M;
+        let mut a1 = (rhs.a1 * self) % &*M;
+        let mut a2 = (rhs.a2 * self) % &*M;
+        let mut a3 = (rhs.a3 * self) % &*M;
+        let mut a4 = (rhs.a4 * self) % &*M;
+        let mut a5 = (rhs.a5 * self) % &*M;
+        let mut a6 = (rhs.a6 * self) % &*M;
+        let mut a7 = (rhs.a7 * self) % &*M;
+        if a0 < BigInt::from(0) {
+            a0 += &*M;
+        }
+        if a1 < BigInt::from(0) {
+            a1 += &*M;
+        }
+        if a2 < BigInt::from(0) {
+            a2 += &*M;
+        }
+        if a3 < BigInt::from(0) {
+            a3 += &*M;
+        }
+        if a4 < BigInt::from(0) {
+            a4 += &*M;
+        }
+        if a5 < BigInt::from(0) {
+            a5 += &*M;
+        }
+        if a6 < BigInt::from(0) {
+            a6 += &*M;
+        }
+        if a7 < BigInt::from(0) {
+            a7 += &*M;
+        }
+        Self::Output {
+            a0,
+            a1,
+            a2,
+            a3,
+            a4,
+            a5,
+            a6,
+            a7,
+        }
+    }
+}
+
 impl Div for Octonion {
     type Output = Self;
 
@@ -425,5 +519,13 @@ impl DivAssign for Octonion {
             a7: (rhs.a7 * inverse(divider.clone(), M.clone())) % &*M,
         };
         *self *= rhs_inv;
+    }
+}
+
+impl Div<Octonion> for &BigInt {
+    type Output = Octonion;
+    fn div(self, rhs: Octonion) -> Self::Output {
+        let divider = inverse(self.clone(), M.clone());
+        return &divider * rhs;
     }
 }
