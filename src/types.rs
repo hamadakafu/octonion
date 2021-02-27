@@ -1,17 +1,18 @@
-use crate::utils::inverse;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+
 use num_bigint;
 use num_bigint::BigInt;
+use num_bigint::BigUint;
+use num_bigint::RandomBits;
 use quickcheck::{Arbitrary, Gen};
-use std::{
-    iter::FromIterator,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
-    u128,
-};
-// use typenum::{Integer, Unsigned, U4, U7};
+use rand::{prelude::Distribution, Rng};
+
+use crate::consts::M;
+use crate::consts::M9689_BITS;
+use crate::utils::inverse;
 
 #[cfg(test)]
 mod tests;
-use crate::consts::M;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Octonion {
@@ -26,16 +27,58 @@ pub struct Octonion {
 }
 
 impl Arbitrary for Octonion {
-    fn arbitrary(g: &mut Gen) -> Self {
+    fn arbitrary(_: &mut Gen) -> Self {
+        let mut rng = rand::thread_rng();
+        let mut a0: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a1: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a2: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a3: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a4: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a5: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a6: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        let mut a7: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
+        a0 %= &*M;
+        a1 %= &*M;
+        a2 %= &*M;
+        a3 %= &*M;
+        a4 %= &*M;
+        a5 %= &*M;
+        a6 %= &*M;
+        a7 %= &*M;
+        if a0 < BigInt::default() {
+            a0 += &*M;
+        }
+        if a1 < BigInt::default() {
+            a1 += &*M;
+        }
+        if a2 < BigInt::default() {
+            a2 += &*M;
+        }
+        if a3 < BigInt::default() {
+            a3 += &*M;
+        }
+        if a4 < BigInt::default() {
+            a4 += &*M;
+        }
+        if a5 < BigInt::default() {
+            a5 += &*M;
+        }
+        if a6 < BigInt::default() {
+            a6 += &*M;
+        }
+        if a7 < BigInt::default() {
+            a7 += &*M;
+        }
+
         Octonion {
-            a0: BigInt::from(u8::arbitrary(g)) % &*M,
-            a1: BigInt::from(u8::arbitrary(g)) % &*M,
-            a2: BigInt::from(u8::arbitrary(g)) % &*M,
-            a3: BigInt::from(u8::arbitrary(g)) % &*M,
-            a4: BigInt::from(u8::arbitrary(g)) % &*M,
-            a5: BigInt::from(u8::arbitrary(g)) % &*M,
-            a6: BigInt::from(u8::arbitrary(g)) % &*M,
-            a7: BigInt::from(u8::arbitrary(g)) % &*M,
+            a0,
+            a1,
+            a2,
+            a3,
+            a4,
+            a5,
+            a6,
+            a7,
         }
     }
 }

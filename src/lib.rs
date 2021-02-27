@@ -1,3 +1,4 @@
 pub mod consts;
+pub mod crypto;
 pub mod types;
-mod utils;
+pub mod utils;

@@ -1,5 +1,7 @@
 use num_bigint::{BigInt, Sign};
+use num_bigint::{RandBigInt, ToBigInt};
 use once_cell::sync::Lazy;
+use rand::Rng;
 use std::str::FromStr;
 
 pub(crate) const m: Lazy<BigInt> =
@@ -20,4 +22,14 @@ fn main() {
     dbg!((aa - bb) % cc > BigInt::new(Sign::Plus, vec![]));
     dbg!(BigInt::new(Sign::Minus, vec![]) == BigInt::default());
     dbg!(BigInt::from(0), BigInt::default());
+
+    let mut rng = rand::thread_rng();
+    let a = rng.gen_bigint(1000);
+
+    let low = -10000.to_bigint().unwrap();
+    let high = 10000.to_bigint().unwrap();
+    let b = rng.gen_bigint_range(&low, &high);
+    // Probably an even larger number.
+    println!("a: {}, b: {}, a * b: {}", a.clone(), b.clone(), a * b);
+    // dbg!(a * b);
 }

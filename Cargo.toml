@@ -11,9 +11,11 @@ crate-type = ["lib"]
 
 [dependencies]
 typenum = "*"
-num-bigint = "*"
+num-bigint = {version = "0.3", features = ["rand"] }
 once_cell = "*"
 quickcheck = "1"
+rand = "0.7"
+anyhow = "*"
 
 [dev-dependencies]
 quickcheck_macros = "1"
