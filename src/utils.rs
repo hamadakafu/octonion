@@ -113,7 +113,8 @@ pub fn sqrt_with_mod(n: BigInt, p: BigInt) -> Result<BigInt> {
     return Ok(r);
 }
 
-fn is_residue(x: &BigInt, p: &BigInt) -> bool {
+/// is there sqrt(x)?
+pub fn is_residue(x: &BigInt, p: &BigInt) -> bool {
     x.modpow(&((p - BigInt::from(1)) / BigInt::from(2)), &p) == BigInt::from(1)
 }
 
