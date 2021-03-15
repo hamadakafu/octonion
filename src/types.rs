@@ -1,4 +1,9 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::fmt::Formatter;
+use std::ops::{Index, IndexMut};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+};
 
 use num_bigint;
 use num_bigint::BigInt;
@@ -76,31 +81,20 @@ impl Octonion {
         }
     }
 
-    pub fn is_zero(&self) -> bool {
-        let zero = BigInt::from(0);
-        self.a0 == zero
-            && self.a1 == zero
-            && self.a2 == zero
-            && self.a3 == zero
-            && self.a4 == zero
-            && self.a5 == zero
-            && self.a6 == zero
-            && self.a7 == zero
+    pub fn zero() -> Self {
+        Octonion::new_with_bigint(
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+            BigInt::from(0),
+        )
     }
 
-    pub fn has_inv(&self) -> bool {
-        let norm = (self.a0.pow(2)
-            + self.a1.pow(2)
-            + self.a2.pow(2)
-            + self.a3.pow(2)
-            + self.a4.pow(2)
-            + self.a5.pow(2)
-            + self.a6.pow(2)
-            + self.a7.pow(2))
-            % &*M;
-        norm != BigInt::from(0)
-    }
-
+    /// identity element
     pub fn one() -> Self {
         Octonion::new_with_bigint(
             BigInt::from(1),
@@ -114,16 +108,85 @@ impl Octonion {
         )
     }
 
+    /// all one
+    pub fn ones() -> Self {
+        Octonion::new_with_bigint(
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+            BigInt::from(1),
+        )
+    }
+
+    pub fn is_zero(&self) -> bool {
+        let zero = BigInt::from(0);
+        self.a0 == zero
+            && self.a1 == zero
+            && self.a2 == zero
+            && self.a3 == zero
+            && self.a4 == zero
+            && self.a5 == zero
+            && self.a6 == zero
+            && self.a7 == zero
+    }
+
+    pub fn has_inv(&self) -> bool {
+        let norm2 = self.norm2();
+        norm2 != BigInt::from(0)
+    }
+
+    /// 逆元が存在するなら a.conjugate / |a|^2
+    pub fn inverse(&self) -> Option<Self> {
+        if !self.has_inv() {
+            return None;
+        }
+        let norm2 = self.norm2();
+        return Some(&inverse(norm2, M.clone()) * self.conjugate());
+    }
+
+    /// 共役
+    pub fn conjugate(&self) -> Self {
+        let mut a1 = &*M - &self.a1;
+        let mut a2 = &*M - &self.a2;
+        let mut a3 = &*M - &self.a3;
+        let mut a4 = &*M - &self.a4;
+        let mut a5 = &*M - &self.a5;
+        let mut a6 = &*M - &self.a6;
+        let mut a7 = &*M - &self.a7;
+        a1 %= &*M;
+        a2 %= &*M;
+        a3 %= &*M;
+        a4 %= &*M;
+        a5 %= &*M;
+        a6 %= &*M;
+        a7 %= &*M;
+        Self {
+            a0: self.a0.clone(),
+            a1,
+            a2,
+            a3,
+            a4,
+            a5,
+            a6,
+            a7,
+        }
+    }
+
     /// |self|^2
     pub fn norm2(&self) -> BigInt {
-        (self.a0.clone() * self.a0.clone()
-            + self.a1.clone() * self.a1.clone()
-            + self.a2.clone() * self.a2.clone()
-            + self.a3.clone() * self.a3.clone()
-            + self.a4.clone() * self.a4.clone()
-            + self.a5.clone() * self.a5.clone()
-            + self.a6.clone() * self.a6.clone()
-            + self.a7.clone() * self.a7.clone())
+        let two = BigInt::from(2);
+        (self.a0.modpow(&two, &*M)
+            + self.a1.modpow(&two, &*M)
+            + self.a2.modpow(&two, &*M)
+            + self.a3.modpow(&two, &*M)
+            + self.a4.modpow(&two, &*M)
+            + self.a5.modpow(&two, &*M)
+            + self.a6.modpow(&two, &*M)
+            + self.a7.modpow(&two, &*M))
             % &*M
     }
 }
@@ -503,10 +566,45 @@ impl DivAssign for Octonion {
     }
 }
 
-impl Div<Octonion> for &BigInt {
-    type Output = Octonion;
-    fn div(self, rhs: Octonion) -> Self::Output {
-        let divider = inverse(self.clone(), M.clone());
-        return &divider * rhs;
+impl Index<usize> for Octonion {
+    type Output = BigInt;
+    fn index(&self, idx: usize) -> &<Self as Index<usize>>::Output {
+        match idx {
+            0 => &self.a0,
+            1 => &self.a1,
+            2 => &self.a2,
+            3 => &self.a3,
+            4 => &self.a4,
+            5 => &self.a5,
+            6 => &self.a6,
+            7 => &self.a7,
+            _ => panic!("index {} out of bounds.", idx),
+        }
+    }
+}
+
+impl IndexMut<usize> for Octonion {
+    fn index_mut(&mut self, idx: usize) -> &mut <Self as Index<usize>>::Output {
+        match idx {
+            0 => &mut self.a0,
+            1 => &mut self.a1,
+            2 => &mut self.a2,
+            3 => &mut self.a3,
+            4 => &mut self.a4,
+            5 => &mut self.a5,
+            6 => &mut self.a6,
+            7 => &mut self.a7,
+            _ => panic!("index {} out of bounds.", idx),
+        }
+    }
+}
+
+impl Display for Octonion {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "O: ")?;
+        for i in 0..8 {
+            write!(f, "{}", self[i])?;
+        }
+        Ok(())
     }
 }

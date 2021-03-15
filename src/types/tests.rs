@@ -1,55 +1,21 @@
-// use quickcheck_macros::quickcheck;
-use num_bigint::RandomBits;
+use num_bigint::RandBigInt;
 use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
-use rand::{prelude::Distribution, Rng};
 
 use super::*;
-use crate::consts::{M9689, M9689_BITS};
+use crate::consts::M9689;
 
 impl Arbitrary for Octonion {
     fn arbitrary(_: &mut Gen) -> Self {
         let mut rng = rand::thread_rng();
-        let mut a0: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a1: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a2: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a3: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a4: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a5: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a6: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        let mut a7: BigInt = RandomBits::new(M9689_BITS).sample(&mut rng);
-        a0 %= &*M9689;
-        a1 %= &*M9689;
-        a2 %= &*M9689;
-        a3 %= &*M9689;
-        a4 %= &*M9689;
-        a5 %= &*M9689;
-        a6 %= &*M9689;
-        a7 %= &*M9689;
-        if a0 < BigInt::default() {
-            a0 += &*M9689;
-        }
-        if a1 < BigInt::default() {
-            a1 += &*M9689;
-        }
-        if a2 < BigInt::default() {
-            a2 += &*M9689;
-        }
-        if a3 < BigInt::default() {
-            a3 += &*M9689;
-        }
-        if a4 < BigInt::default() {
-            a4 += &*M9689;
-        }
-        if a5 < BigInt::default() {
-            a5 += &*M9689;
-        }
-        if a6 < BigInt::default() {
-            a6 += &*M9689;
-        }
-        if a7 < BigInt::default() {
-            a7 += &*M9689;
-        }
+        let a0 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a1 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a2 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a3 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a4 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a5 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a6 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a7 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
 
         Octonion {
             a0,
@@ -80,6 +46,15 @@ fn test_div(a: Octonion) -> bool {
             BigInt::from(0),
             BigInt::from(0),
         )
+}
+
+#[quickcheck]
+fn test_inverse(a: Octonion) -> bool {
+    if let Some(a_inv) = a.inverse() {
+        a_inv.clone() * a.clone() == Octonion::one() && a * a_inv == Octonion::one()
+    } else {
+        true
+    }
 }
 
 /// (aa)b = a(ab)

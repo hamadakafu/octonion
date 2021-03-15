@@ -8,7 +8,14 @@ pub const M9689_STR: &str = "478220278805461202952839298660005909741497172402236
 
 /// 2 ** 32 - 1
 #[allow(dead_code)]
-pub const M31: &str = "2147483647";
-pub const M31_BITS: u64 = 31;
+pub const M32_BITS: u64 = 31;
+pub const M32_STR: &str = "2147483647";
 pub const M9689: Lazy<BigInt> = Lazy::new(|| BigInt::from_str(M9689_STR).unwrap());
+
+pub const FIVE_BITS: u64 = 3;
+pub const FIVE: Lazy<BigInt> = Lazy::new(|| BigInt::from(5));
+// pub const M: Lazy<BigInt> = FIVE;
+// pub const M_BITS: u64 = FIVE_BITS;
+
 pub const M: Lazy<BigInt> = M9689;
+pub const M_BITS: u64 = M9689_BITS;

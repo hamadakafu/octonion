@@ -1,10 +1,12 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use num_bigint::BigInt;
 use num_bigint::RandBigInt;
-use num_bigint::RandomBits;
 use rand;
-use rand::distributions::Distribution;
 
 use crate::types::Octonion;
+use crate::utils::gen_rand_octonion_which_has_inv;
 use crate::utils::inverse;
 use crate::utils::is_residue;
 use crate::utils::sqrt_with_mod;
@@ -13,6 +15,7 @@ use crate::utils::sqrt_with_mod;
 #[derive(Debug, Clone)]
 pub struct Schema {
     q: BigInt,
+    q_bits: u64,
     g: Octonion,
     h: Octonion,
 }
@@ -25,28 +28,213 @@ pub struct Plaintext {
 #[derive(Debug, Clone)]
 pub struct Mediamtext {
     pub value: Octonion,
+    // TODO: uvwはprivateにすべきかもしれない
+    // TODO: uvwは保存する必要がない
     pub u: BigInt,
     pub v: BigInt,
     pub w: BigInt,
 }
 
-impl Schema {
-    pub fn new_with_q(q: BigInt, q_bit: u64) -> Self {
-        let (g, h) = Self::find_g_h(q.clone(), q_bit);
-        return Self { q, g, h };
+impl Display for Mediamtext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", self.value)?;
+        Ok(())
     }
+}
 
-    pub fn new_with_q_g_h(q: BigInt, g: Octonion, h: Octonion) -> Self {
+#[derive(Debug, Clone)]
+pub struct CipherText {
+    pub q: BigInt,
+    pub q_bits: u64,
+    /// f: O -> O の係数
+    /// e[i][x] の順で指定する
+    pub e: Vec<Vec<BigInt>>,
+}
+
+impl Display for CipherText {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "q: {}, e:\n", self.q)?;
+        for ie in 0..8 {
+            write!(f, "ie{}", ie)?;
+            for ix in 0..8 {
+                write!(f, " {}", self.e[ie][ix])?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SecretKey {
+    pub q: BigInt,
+    pub q_bits: u64,
+    /// Aのlength
+    pub h: usize,
+    /// A_i
+    pub a: Vec<Octonion>,
+}
+
+impl Display for SecretKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "q: {}, h: {}, a:", self.q, self.h)?;
+        for a in self.a.iter() {
+            write!(f, " {}", a)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PublicKey {
+    pub q: BigInt,
+    pub q_bits: u64,
+    /// ijk -> i x y の順で指定する
+    pub e: Vec<Vec<Vec<BigInt>>>,
+}
+
+impl Display for PublicKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "q: {}\ne:", self.q)?;
+        for ie in 0..8 {
+            write!(f, "{}: (", ie)?;
+            for ix in 0..8 {
+                write!(f, "{}: (", ix)?;
+                for iy in 0..8 {
+                    write!(f, " {}", self.e[ie][ix][iy])?;
+                }
+                write!(f, ")")?;
+            }
+            write!(f, ")")?;
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
+impl PublicKey {
+    /// generate public key from secret key
+    pub fn new_from_sk(sk: &SecretKey) -> PublicKey {
+        let enc_fn = |x: Octonion, y: Octonion| {
+            let mut ans = x;
+
+            // A_h^-1 ( ... ( A_1^-1 X ) )
+            for a in &sk.a {
+                ans = a.inverse().unwrap() * ans;
+            }
+
+            ans = y * ans;
+
+            // A_1 ( ... ( A_h ans ) )
+            for a in sk.a.iter().rev() {
+                ans = a.clone() * ans;
+            }
+            return ans;
+        };
+
+        let mut e = vec![vec![vec![BigInt::from(0); 8]; 8]; 8];
+        for ix in 0..8 {
+            for iy in 0..8 {
+                let mut x = Octonion::zero();
+                let mut y = Octonion::zero();
+                x[ix] = BigInt::from(1);
+                y[iy] = BigInt::from(1);
+                let result = enc_fn(x, y);
+                for ie in 0..8 {
+                    e[ie][ix][iy] = result[ie].clone();
+                }
+            }
+        }
+        return PublicKey {
+            q: sk.q.clone(),
+            q_bits: sk.q_bits,
+            e,
+        };
+    }
+}
+
+impl Schema {
+    pub fn new_with_q(q: BigInt, q_bits: u64) -> Self {
+        let (g, h) = Self::find_g_h(q.clone(), q_bits);
         // TODO: validate prime
         if q < BigInt::from(0) {
             panic!("modulus q({:?}) is less than 0", q);
         }
-        Self { q, g, h }
+        return Self::new_with_q_g_h(q, q_bits, g, h);
+    }
+
+    pub fn new_with_q_g_h(q: BigInt, q_bits: u64, g: Octonion, h: Octonion) -> Self {
+        Self { q, q_bits, g, h }
     }
 
     pub fn new_plaintext(&self, p: BigInt) -> Plaintext {
         // TODO: pがFq上のOctonionになっているかをvalidate
         Plaintext { value: p }
+    }
+
+    /// generate secret key and public key
+    pub fn gen_sk_pk(&self) -> (SecretKey, PublicKey) {
+        // TODO: 秘密鍵に使うAの個数はとりあえず定数
+        let h = 1;
+        let a = {
+            let mut a = Vec::with_capacity(h);
+            for _ in 0..h {
+                a.push(gen_rand_octonion_which_has_inv(&self.q, self.q_bits));
+            }
+            a
+        };
+        let sk = SecretKey {
+            h,
+            a,
+            q: self.q.clone(),
+            q_bits: self.q_bits,
+        };
+        let pk = PublicKey::new_from_sk(&sk);
+        return (sk, pk);
+    }
+
+    pub fn encrypt(&self, pt: Plaintext, pk: &PublicKey) -> CipherText {
+        let mt = self.p_to_m(pt);
+        let mut e = vec![vec![BigInt::from(0); 8]; 8];
+        for ie in 0..8 {
+            for ix in 0..8 {
+                for iy in 0..8 {
+                    e[ie][ix] += &pk.e[ie][ix][iy] * &mt.value[iy];
+                    e[ie][ix] %= &self.q;
+                }
+            }
+        }
+        CipherText {
+            q: self.q.clone(),
+            q_bits: self.q_bits,
+            e,
+        }
+    }
+
+    pub fn decrypt(&self, ct: CipherText, sk: &SecretKey) -> Plaintext {
+        // TODO: feature(fn_traits)ができるようになったら、impl Fn for SecretKey
+        let mut pt = Octonion::zero();
+        let mut x = Octonion::one();
+        // A_1 ( ... (A_h 1) )
+        for a in sk.a.iter().rev() {
+            x = a.clone() * x;
+        }
+
+        for ie in 0..8 {
+            for ix in 0..8 {
+                pt[ie] += &ct.e[ie][ix] * &x[ix];
+            }
+            pt[ie] %= &self.q;
+        }
+
+        // A_r^-1 ( ... (A_1^-1 pt) )
+        for a in sk.a.iter() {
+            pt = a.inverse().unwrap() * pt;
+        }
+
+        Plaintext {
+            value: (2 * &pt[0]) % &self.q,
+        }
     }
 
     /// plaintext -> mediamtext
@@ -76,69 +264,23 @@ impl Schema {
         let two = BigInt::from(2);
         loop {
             let g0: BigInt = BigInt::from(1) * inverse(BigInt::from(2), M.clone());
-            let mut g1: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut g2: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut g3: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut g4: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut g5: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            g1 %= &M;
-            g2 %= &M;
-            g3 %= &M;
-            g4 %= &M;
-            g5 %= &M;
-            if g1 < BigInt::default() {
-                g1 += &M;
-            }
-            if g2 < BigInt::default() {
-                g2 += &M;
-            }
-            if g3 < BigInt::default() {
-                g3 += &M;
-            }
-            if g4 < BigInt::default() {
-                g4 += &M;
-            }
-            if g5 < BigInt::default() {
-                g5 += &M;
-            }
+            let g1 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let g2 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let g3 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let g4 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let g5 = rng.gen_bigint_range(&BigInt::from(0), &q);
 
             let h0: BigInt = BigInt::from(0);
-            let mut h1: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut h2: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut h3: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut h4: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            let mut h5: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-
-            h1 %= &M;
-            h2 %= &M;
-            h3 %= &M;
-            h4 %= &M;
-            h5 %= &M;
-
-            if h1 < BigInt::default() {
-                h1 += &M;
-            }
-            if h2 < BigInt::default() {
-                h2 += &M;
-            }
-            if h3 < BigInt::default() {
-                h3 += &M;
-            }
-            if h4 < BigInt::default() {
-                h4 += &M;
-            }
-            if h5 < BigInt::default() {
-                h5 += &M;
-            }
+            let h1 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let h2 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let h3 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let h4 = rng.gen_bigint_range(&BigInt::from(0), &q);
+            let h5 = rng.gen_bigint_range(&BigInt::from(0), &q);
 
             // g6, g7, h6, h7を決める
 
             // residueになるようにg6を決める
-            let mut g6: BigInt = RandomBits::new(M_BITS).sample(&mut rng);
-            g6 %= &M;
-            if g6 < BigInt::default() {
-                g6 += &M;
-            }
+            let g6 = rng.gen_bigint_range(&BigInt::from(0), &q);
 
             let mut g7g7 = -(g0.modpow(&two, &M)
                 + g1.modpow(&two, &M)
@@ -197,8 +339,14 @@ impl Schema {
             let e = g7.clone();
 
             let h7s = {
+                let e2c2 = (&e2 + &c2) % &M;
+                if e2c2 == BigInt::from(0) {
+                    // e2 + c2で割れないのでcontinue
+                    continue;
+                }
+
                 let sqrt = sqrt_with_mod(pre_h7_key, M.clone()).unwrap();
-                let inv_e2c2 = inverse(&e2 + &c2, M.clone());
+                let inv_e2c2 = inverse(e2c2, M.clone());
                 let mut h7s = (&d * &e + &sqrt, &d * &e - &sqrt);
                 h7s.0 %= &M;
                 h7s.1 %= &M;
@@ -247,7 +395,8 @@ impl Schema {
                 h6s.0,
                 h7s.0,
             );
-            let hs1: Octonion = Octonion::new_with_bigint(h0, h1, h2, h3, h4, h5, h6s.1, h7s.1);
+            // TODO: あまりのHをなにかにつかえないか?
+            let _: Octonion = Octonion::new_with_bigint(h0, h1, h2, h3, h4, h5, h6s.1, h7s.1);
 
             // break (g, hs1);
             break (g, hs0);
