@@ -5,4 +5,4 @@
 - [ ] ciphertext mul
 - [ ] refactor use octonion index access
 - [ ] use macro for change modulus
-
+- [ ] measure performance
