@@ -139,7 +139,7 @@ impl Octonion {
         norm2 != BigInt::from(0)
     }
 
-    /// 逆元が存在するなら a.conjugate / |a|^2
+    /// if exists, self.conjugate / |a|^2
     pub fn inverse(&self) -> Option<Self> {
         if !self.has_inv() {
             return None;
@@ -148,7 +148,6 @@ impl Octonion {
         return Some(&inverse(norm2, M.clone()) * self.conjugate());
     }
 
-    /// 共役
     pub fn conjugate(&self) -> Self {
         let mut a1 = &*M - &self.a1;
         let mut a2 = &*M - &self.a2;

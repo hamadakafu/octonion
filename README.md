@@ -5,4 +5,10 @@
 - [ ] ciphertext mul
 - [ ] refactor use octonion index access
 - [ ] use macro for change modulus
-- [ ] measure performance
+- [ ] benchmark
+
+# References
+https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm
+
+Yagisawa, Masahiro. "Improved Fully Homomorphic Encryption without Bootstrapping." IACR Cryptol. ePrint Arch. 2017 (2017): 763.
+

@@ -4,7 +4,7 @@ use num_bigint::RandBigInt;
 
 use crate::types::Octonion;
 
-/// mを法として逆元求める
+/// find num, num^-1 mod m
 pub fn inverse(num: BigInt, m: BigInt) -> BigInt {
     let mut x0 = BigInt::from(1);
     let mut y0 = BigInt::from(0);
@@ -77,13 +77,13 @@ pub fn sqrt_with_mod(n: BigInt, p: BigInt) -> Result<BigInt> {
         z += 1;
     }
 
-    // 初期値
+    // initial values
     let mut m = s.clone();
     let mut c = z.modpow(&q, &p);
     let mut t = n.modpow(&q, &p);
     let mut r = n.modpow(&((q + 1) / 2), &p);
 
-    // mを減らす
+    // decrease m
     loop {
         if t == BigInt::from(0) {
             break Ok(BigInt::from(0));
@@ -94,9 +94,9 @@ pub fn sqrt_with_mod(n: BigInt, p: BigInt) -> Result<BigInt> {
 
         // find least i, 0 < i < m
         let mut i = BigInt::from(1);
-        // mの最大値は初期値のsなので、
-        // p-1 = q*2^s より 2^(m-1) < p を必ず満たす。
-        // modpowする必要はないが指数にBigIntを取れるので使用している
+        // p-1 = q*2^s
+        // m less than s which is initial value, then satisfy
+        // 2^(m-1) < p
         if t.modpow(&BigInt::from(2).modpow(&(&m - 1), &p), &p) == BigInt::from(1) {
             i = &m - 1;
         } else {

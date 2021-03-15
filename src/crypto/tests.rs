@@ -20,7 +20,6 @@ fn test_mediamtext_assosiative(a: Plaintext, b: Plaintext, c: Plaintext) -> bool
     let am = schema.p_to_m(a);
     let bm = schema.p_to_m(b);
     let cm = schema.p_to_m(c);
-    dbg!("o");
     am.value.clone() * (bm.value.clone() * cm.value.clone()) == (am.value * bm.value) * cm.value
 }
 

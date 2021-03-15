@@ -11,7 +11,7 @@ use crate::utils::inverse;
 use crate::utils::is_residue;
 use crate::utils::sqrt_with_mod;
 
-/// 八元数暗号系
+/// octonion schema
 #[derive(Debug, Clone)]
 pub struct Schema {
     q: BigInt,
@@ -28,11 +28,6 @@ pub struct Plaintext {
 #[derive(Debug, Clone)]
 pub struct Mediamtext {
     pub value: Octonion,
-    // TODO: uvwはprivateにすべきかもしれない
-    // TODO: uvwは保存する必要がない
-    pub u: BigInt,
-    pub v: BigInt,
-    pub w: BigInt,
 }
 
 impl Display for Mediamtext {
@@ -46,8 +41,8 @@ impl Display for Mediamtext {
 pub struct CipherText {
     pub q: BigInt,
     pub q_bits: u64,
-    /// f: O -> O の係数
-    /// e[i][x] の順で指定する
+    /// coefficients f: O -> O
+    /// e[i][x] ((e00, e01, ..., e07), ..., (e70, e71, ..., e77))
     pub e: Vec<Vec<BigInt>>,
 }
 
@@ -89,7 +84,7 @@ impl Display for SecretKey {
 pub struct PublicKey {
     pub q: BigInt,
     pub q_bits: u64,
-    /// ijk -> i x y の順で指定する
+    /// ijk -> i x y ((e000 * x0 * y0 + ... + e077 * x7 * y7), ...)
     pub e: Vec<Vec<Vec<BigInt>>>,
 }
 
@@ -155,7 +150,7 @@ impl PublicKey {
 
 impl Schema {
     pub fn new_with_q(q: BigInt, q_bits: u64) -> Self {
-        let (g, h) = Self::find_g_h(q.clone(), q_bits);
+        let (g, h) = Self::find_g_h(q.clone());
         // TODO: validate prime
         if q < BigInt::from(0) {
             panic!("modulus q({:?}) is less than 0", q);
@@ -168,14 +163,14 @@ impl Schema {
     }
 
     pub fn new_plaintext(&self, p: BigInt) -> Plaintext {
-        // TODO: pがFq上のOctonionになっているかをvalidate
+        // TODO: validate Octonion over Fq
         Plaintext { value: p }
     }
 
     /// generate secret key and public key
     pub fn gen_sk_pk(&self) -> (SecretKey, PublicKey) {
-        // TODO: 秘密鍵に使うAの個数はとりあえず定数
-        let h = 1;
+        // TODO: how to determin SecretKey.a.len()
+        let h = 10;
         let a = {
             let mut a = Vec::with_capacity(h);
             for _ in 0..h {
@@ -212,7 +207,7 @@ impl Schema {
     }
 
     pub fn decrypt(&self, ct: CipherText, sk: &SecretKey) -> Plaintext {
-        // TODO: feature(fn_traits)ができるようになったら、impl Fn for SecretKey
+        // TODO: if rust implements #[feature(fn_traits)], impl Fn for SecretKey
         let mut pt = Octonion::zero();
         let mut x = Octonion::one();
         // A_1 ( ... (A_h 1) )
@@ -248,22 +243,17 @@ impl Schema {
                 + &u * self.h.clone()
                 + &v * self.g.clone() * self.h.clone()
                 + &w * self.h.clone() * self.g.clone(),
-            u,
-            v,
-            w,
         }
     }
 
-    /// 条件を満たすG,Hを求める
-    pub fn find_g_h(q: BigInt, q_bit: u64) -> (Octonion, Octonion) {
-        // TODO: グレブナー基底でgとhを効率よく求められるかもしれない???
+    /// find G, H
+    pub fn find_g_h(q: BigInt) -> (Octonion, Octonion) {
+        // TODO: if using groebner basis
         let mut rng = rand::thread_rng();
-        let M = q.clone();
-        let M_BITS = q_bit;
 
         let two = BigInt::from(2);
         loop {
-            let g0: BigInt = BigInt::from(1) * inverse(BigInt::from(2), M.clone());
+            let g0: BigInt = BigInt::from(1) * inverse(BigInt::from(2), q.clone());
             let g1 = rng.gen_bigint_range(&BigInt::from(0), &q);
             let g2 = rng.gen_bigint_range(&BigInt::from(0), &q);
             let g3 = rng.gen_bigint_range(&BigInt::from(0), &q);
@@ -277,108 +267,106 @@ impl Schema {
             let h4 = rng.gen_bigint_range(&BigInt::from(0), &q);
             let h5 = rng.gen_bigint_range(&BigInt::from(0), &q);
 
-            // g6, g7, h6, h7を決める
-
-            // residueになるようにg6を決める
+            // find g6, g7, h6, h7
             let g6 = rng.gen_bigint_range(&BigInt::from(0), &q);
 
-            let mut g7g7 = -(g0.modpow(&two, &M)
-                + g1.modpow(&two, &M)
-                + g2.modpow(&two, &M)
-                + g3.modpow(&two, &M)
-                + g4.modpow(&two, &M)
-                + g5.modpow(&two, &M)
-                + g6.modpow(&two, &M));
-            g7g7 %= &M;
+            let mut g7g7 = -(g0.modpow(&two, &q)
+                + g1.modpow(&two, &q)
+                + g2.modpow(&two, &q)
+                + g3.modpow(&two, &q)
+                + g4.modpow(&two, &q)
+                + g5.modpow(&two, &q)
+                + g6.modpow(&two, &q));
+            g7g7 %= &q;
             if g7g7 < BigInt::default() {
-                g7g7 += &M;
+                g7g7 += &q;
             }
-
-            // h6,h7の方程式を解く
-            let mut b = -(h1.modpow(&two, &M)
-                + h2.modpow(&two, &M)
-                + h3.modpow(&two, &M)
-                + h4.modpow(&two, &M)
-                + h5.modpow(&two, &M));
-            b %= &M;
-            if b < BigInt::default() {
-                b += &M;
-            }
-
-            let c = g6.clone();
-            let c2 = c.modpow(&two, &M);
-
-            let mut d = -(&g1 * &h1 + &g2 * &h2 + &g3 * &h3 + &g4 * &h4 + &g5 * &h5);
-            d %= &M;
-            if d < BigInt::default() {
-                d += &M;
-            }
-            let d2 = d.modpow(&two, &M);
-
-            // let e = g7.clone();
-            let e2 = g7g7.clone();
-
-            // h7が存在するのに満たす必要がある性質
-            let mut pre_h7_key = &d2 * &e2 - (&e2 + &c2) * (&d2 - &b * &c2);
-            pre_h7_key %= &M;
-            if pre_h7_key < BigInt::default() {
-                pre_h7_key += &M;
-            }
-
-            if !is_residue(&g7g7, &M) {
+            if !is_residue(&g7g7, &q) {
                 // dbg!("omg", g7g7);
                 continue;
             }
-            if !is_residue(&pre_h7_key, &M) {
+
+            // solve
+            // h6h6 + h7h7 = b
+            // g6h6 + g7h7 = d
+
+            let mut b = -(h1.modpow(&two, &q)
+                + h2.modpow(&two, &q)
+                + h3.modpow(&two, &q)
+                + h4.modpow(&two, &q)
+                + h5.modpow(&two, &q));
+            b %= &q;
+            if b < BigInt::default() {
+                b += &q;
+            }
+
+            let c = g6.clone();
+            let c2 = c.modpow(&two, &q);
+
+            let mut d = -(&g1 * &h1 + &g2 * &h2 + &g3 * &h3 + &g4 * &h4 + &g5 * &h5);
+            d %= &q;
+            if d < BigInt::default() {
+                d += &q;
+            }
+            let d2 = d.modpow(&two, &q);
+
+            let e2 = g7g7.clone();
+
+            let mut pre_h7_key = &d2 * &e2 - (&e2 + &c2) * (&d2 - &b * &c2);
+            pre_h7_key %= &q;
+            if pre_h7_key < BigInt::default() {
+                pre_h7_key += &q;
+            }
+            if !is_residue(&pre_h7_key, &q) {
                 // dbg!("omg", pre_h7_key);
                 continue;
             }
 
-            let g7: BigInt = sqrt_with_mod(g7g7, M.clone()).unwrap();
+            let g7: BigInt = sqrt_with_mod(g7g7, q.clone()).unwrap();
             // dbg!(&g6, &g7);
             let e = g7.clone();
 
             let h7s = {
-                let e2c2 = (&e2 + &c2) % &M;
+                let e2c2 = (&e2 + &c2) % &q;
                 if e2c2 == BigInt::from(0) {
-                    // e2 + c2で割れないのでcontinue
+                    // e2 + c2 cant be divider
                     continue;
                 }
 
-                let sqrt = sqrt_with_mod(pre_h7_key, M.clone()).unwrap();
-                let inv_e2c2 = inverse(e2c2, M.clone());
+                let sqrt = sqrt_with_mod(pre_h7_key, q.clone()).unwrap();
+                let inv_e2c2 = inverse(e2c2, q.clone());
                 let mut h7s = (&d * &e + &sqrt, &d * &e - &sqrt);
-                h7s.0 %= &M;
-                h7s.1 %= &M;
+                h7s.0 %= &q;
+                h7s.1 %= &q;
                 if h7s.0 < BigInt::default() {
-                    h7s.0 += &M;
+                    h7s.0 += &q;
                 }
                 if h7s.1 < BigInt::default() {
-                    h7s.1 += &M;
+                    h7s.1 += &q;
                 }
                 h7s.0 *= &inv_e2c2;
                 h7s.1 *= &inv_e2c2;
-                h7s.0 %= &M;
-                h7s.1 %= &M;
+                h7s.0 %= &q;
+                h7s.1 %= &q;
                 if h7s.0 < BigInt::default() {
-                    h7s.0 += &M;
+                    h7s.0 += &q;
                 }
                 if h7s.1 < BigInt::default() {
-                    h7s.1 += &M;
+                    h7s.1 += &q;
                 }
                 h7s
             };
 
             let h6s = {
-                let inv_c = inverse(c.clone(), M.clone());
+                let inv_c = inverse(c.clone(), q.clone());
                 let mut h6s = ((&d - &h7s.0 * &e) * &inv_c, (&d - &h7s.1 * &e) * &inv_c);
-                h6s.0 %= &M;
-                h6s.1 %= &M;
+                h6s.0 %= &q;
+                h6s.1 %= &q;
                 if h6s.0 < BigInt::default() {
-                    h6s.0 += &M;
+                    h6s.0 += &q;
                 }
                 if h6s.1 < BigInt::default() {
-                    h6s.1 += &M;
+                    h6s.1 += &q;
                 }
                 h6s
             };
@@ -395,7 +383,7 @@ impl Schema {
                 h6s.0,
                 h7s.0,
             );
-            // TODO: あまりのHをなにかにつかえないか?
+            // TODO: can i use something? zkp...
             let _: Octonion = Octonion::new_with_bigint(h0, h1, h2, h3, h4, h5, h6s.1, h7s.1);
 
             // break (g, hs1);
