@@ -84,6 +84,7 @@ impl Display for SecretKey {
 pub struct PublicKey {
     pub q: BigInt,
     pub q_bits: u64,
+    /// coefficients f: (O \times O) -> O
     /// ijk -> i x y ((e000 * x0 * y0 + ... + e077 * x7 * y7), ...)
     pub e: Vec<Vec<Vec<BigInt>>>,
 }
