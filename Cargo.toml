@@ -19,3 +19,25 @@ anyhow = "*"
 [dev-dependencies]
 quickcheck = "1"
 quickcheck_macros = "1"
+criterion = "0.3"
+
+[[bench]]
+name = "find_g_h"
+harness = false
+
+[[bench]]
+name = "encrypt"
+harness = false
+
+[[bench]]
+name = "decrypt"
+harness = false
+
+[[bench]]
+name = "add"
+harness = false
+
+[[bench]]
+name = "mul"
+harness = false
+

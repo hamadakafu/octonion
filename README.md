@@ -4,7 +4,7 @@
 - [x] ciphertext add
 - [x] ciphertext mul
 - [x] use feature const generics
-- [ ] benchmark
+- [x] benchmark
 
 # References
 https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm

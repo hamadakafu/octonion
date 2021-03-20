@@ -12,7 +12,7 @@ use crate::utils::inverse;
 use crate::utils::is_residue;
 use crate::utils::sqrt_with_mod;
 
-mod cipher_text;
+pub mod cipher_text;
 #[cfg(test)]
 mod tests;
 
