@@ -1,10 +1,9 @@
 use num_bigint::RandBigInt;
-use once_cell::sync::Lazy;
 use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
 
 use super::*;
-use crate::consts::{M, M_BITS};
+use crate::consts::M;
 
 impl Arbitrary for PlainText {
     fn arbitrary(_: &mut Gen) -> Self {
@@ -16,7 +15,7 @@ impl Arbitrary for PlainText {
 
 #[quickcheck]
 fn test_mediamtext_assosiative(a: PlainText, b: PlainText, c: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone(), M_BITS);
+    let schema = Schema::new_with_q(M.clone());
     let am = schema.p_to_m(a);
     let bm = schema.p_to_m(b);
     let cm = schema.p_to_m(c);
@@ -25,7 +24,7 @@ fn test_mediamtext_assosiative(a: PlainText, b: PlainText, c: PlainText) -> bool
 
 #[quickcheck]
 fn test_encrypt_decrypt(pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone(), M_BITS);
+    let schema = Schema::new_with_q(M.clone());
     let (sk, pk) = schema.gen_sk_pk();
     let ct = schema.encrypt(pt.clone(), &pk);
     let pt_hat = schema.decrypt(ct, &sk);
@@ -42,7 +41,7 @@ fn test_encrypt_decrypt(pt: PlainText) -> bool {
 
 #[quickcheck]
 fn test_encrypt_decrypt_add(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone(), M_BITS);
+    let schema = Schema::new_with_q(M.clone());
     let (sk, pk) = schema.gen_sk_pk();
     let lhs_ct = schema.encrypt(lhs_pt.clone(), &pk);
     let rhs_ct = schema.encrypt(rhs_pt.clone(), &pk);
@@ -66,7 +65,7 @@ fn test_encrypt_decrypt_add(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
 
 #[quickcheck]
 fn test_encrypt_decrypt_mul(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone(), M_BITS);
+    let schema = Schema::new_with_q(M.clone());
     let (sk, pk) = schema.gen_sk_pk();
     let lhs_ct = schema.encrypt(lhs_pt.clone(), &pk);
     let rhs_ct = schema.encrypt(rhs_pt.clone(), &pk);
@@ -82,7 +81,10 @@ fn test_encrypt_decrypt_mul(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
         println!("pl: {}, pr: {}", lhs_pt.value, rhs_pt.value);
         println!("mul_pt_hat.value: {}", &mul_pt_hat.value);
     } else {
-        println!("ok, {} * {}  == {}", lhs_pt.value, rhs_pt.value, mul_pt_hat.value);
+        println!(
+            "ok, {} * {}  == {}",
+            lhs_pt.value, rhs_pt.value, mul_pt_hat.value
+        );
     }
     ans == mul_pt_hat.value
 }

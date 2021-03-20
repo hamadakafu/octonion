@@ -128,7 +128,7 @@ pub fn is_residue(x: &BigInt, p: &BigInt) -> bool {
     x.modpow(&((p - BigInt::from(1)) / BigInt::from(2)), &p) == BigInt::from(1)
 }
 
-pub fn gen_rand_octonion_which_has_inv(q: &BigInt, _: u64) -> Octonion {
+pub fn gen_rand_octonion_which_has_inv(q: &BigInt) -> Octonion {
     let mut rng = rand::thread_rng();
     let a0: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
     let a1: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
@@ -166,7 +166,6 @@ mod tests {
 
     use super::*;
     use crate::consts::M;
-    use crate::consts::M_BITS;
     #[quickcheck]
     fn test_inverse(num: usize) -> bool {
         let num = BigInt::from(num) % &*M;
@@ -216,6 +215,6 @@ mod tests {
 
     #[quickcheck]
     fn test_gen_rand_octonion_which_has_inv(_: usize) -> bool {
-        gen_rand_octonion_which_has_inv(&*M, M_BITS).has_inv()
+        gen_rand_octonion_which_has_inv(&*M).has_inv()
     }
 }

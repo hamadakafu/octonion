@@ -20,7 +20,6 @@ mod tests;
 #[derive(Debug, Clone)]
 pub struct Schema {
     q: BigInt,
-    q_bits: u64,
     g: Octonion,
     h: Octonion,
 }
@@ -47,7 +46,6 @@ impl Display for MediamText {
 #[derive(Debug, Clone)]
 pub struct SecretKey {
     pub q: BigInt,
-    pub q_bits: u64,
     /// Aのlength
     pub h: usize,
     /// A_i
@@ -67,7 +65,6 @@ impl Display for SecretKey {
 #[derive(Debug, Clone)]
 pub struct PublicKey {
     pub q: BigInt,
-    pub q_bits: u64,
     /// coefficients f: (O \times O) -> O
     /// ijk -> i x y ((e000 * x0 * y0 + ... + e077 * x7 * y7), ...)
     pub e: Vec<Vec<Vec<BigInt>>>,
@@ -127,24 +124,23 @@ impl PublicKey {
         }
         return PublicKey {
             q: sk.q.clone(),
-            q_bits: sk.q_bits,
             e,
         };
     }
 }
 
 impl Schema {
-    pub fn new_with_q(q: BigInt, q_bits: u64) -> Self {
+    pub fn new_with_q(q: BigInt) -> Self {
         let (g, h) = Self::find_g_h(q.clone());
         // TODO: validate prime
         if q < BigInt::from(0) {
             panic!("modulus q({:?}) is less than 0", q);
         }
-        return Self::new_with_q_g_h(q, q_bits, g, h);
+        return Self::new_with_q_g_h(q, g, h);
     }
 
-    pub fn new_with_q_g_h(q: BigInt, q_bits: u64, g: Octonion, h: Octonion) -> Self {
-        Self { q, q_bits, g, h }
+    pub fn new_with_q_g_h(q: BigInt, g: Octonion, h: Octonion) -> Self {
+        Self { q, g, h }
     }
 
     pub fn new_plaintext(&self, p: BigInt) -> PlainText {
@@ -159,7 +155,7 @@ impl Schema {
         let a = {
             let mut a = Vec::with_capacity(h);
             for _ in 0..h {
-                a.push(gen_rand_octonion_which_has_inv(&self.q, self.q_bits));
+                a.push(gen_rand_octonion_which_has_inv(&self.q));
             }
             a
         };
@@ -167,7 +163,6 @@ impl Schema {
             h,
             a,
             q: self.q.clone(),
-            q_bits: self.q_bits,
         };
         let pk = PublicKey::new_from_sk(&sk);
         return (sk, pk);
@@ -186,7 +181,6 @@ impl Schema {
         }
         CipherText {
             q: self.q.clone(),
-            q_bits: self.q_bits,
             e,
         }
     }

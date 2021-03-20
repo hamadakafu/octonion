@@ -7,7 +7,6 @@ use crate::types::Octonion;
 #[derive(Debug, Clone)]
 pub struct CipherText {
     pub q: BigInt,
-    pub q_bits: u64,
     /// coefficients f: O -> O
     /// e[i][x] ((e00, e01, ..., e07), ..., (e70, e71, ..., e77))
     pub e: Vec<Vec<BigInt>>,
@@ -53,7 +52,6 @@ impl<'a> Add<&CipherText> for &'a CipherText {
         }
         return CipherText {
             q: self.q.clone(),
-            q_bits: self.q_bits,
             e,
         };
     }
@@ -93,7 +91,6 @@ impl<'a> Mul<&CipherText> for &'a CipherText {
         }
         return CipherText {
             q: self.q.clone(),
-            q_bits: self.q_bits,
             e,
         };
     }

@@ -5,10 +5,9 @@ use octonion::crypto::{PlainText, PublicKey};
 use octonion::types::Octonion;
 
 fn main() {
-    let schema = Schema::new_with_q(BigInt::from(5), 3);
+    let schema = Schema::new_with_q(BigInt::from(5));
     // schema.debug();
     // let q = BigInt::from(5);
-    // let q_bits = 3;
     // let aa = Octonion::new_with_bigint(
     //     BigInt::from(0),
     //     BigInt::from(3),
@@ -21,7 +20,6 @@ fn main() {
     // );
     // let sk = SecretKey {
     //     q,
-    //     q_bits,
     //     h: 1,
     //     a: vec![aa.clone()],
     // };
@@ -95,7 +93,6 @@ fn new_from_sk(sk: &SecretKey) -> PublicKey {
     }
     return PublicKey {
         q: sk.q.clone(),
-        q_bits: sk.q_bits,
         e,
     };
 }
