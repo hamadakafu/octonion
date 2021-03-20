@@ -149,44 +149,24 @@ impl Octonion {
     }
 
     pub fn conjugate(&self) -> Self {
-        let mut a1 = &*M - &self.a1;
-        let mut a2 = &*M - &self.a2;
-        let mut a3 = &*M - &self.a3;
-        let mut a4 = &*M - &self.a4;
-        let mut a5 = &*M - &self.a5;
-        let mut a6 = &*M - &self.a6;
-        let mut a7 = &*M - &self.a7;
-        a1 %= &*M;
-        a2 %= &*M;
-        a3 %= &*M;
-        a4 %= &*M;
-        a5 %= &*M;
-        a6 %= &*M;
-        a7 %= &*M;
-        Self {
-            a0: self.a0.clone(),
-            a1,
-            a2,
-            a3,
-            a4,
-            a5,
-            a6,
-            a7,
+        let mut c = Octonion::zero();
+        c[0] = self.a0.clone();
+        for i in 1..8 {
+            c[i] = &*M - &self[i];
+            c[i] %= &*M;
         }
+        return c;
     }
 
     /// |self|^2
     pub fn norm2(&self) -> BigInt {
         let two = BigInt::from(2);
-        (self.a0.modpow(&two, &*M)
-            + self.a1.modpow(&two, &*M)
-            + self.a2.modpow(&two, &*M)
-            + self.a3.modpow(&two, &*M)
-            + self.a4.modpow(&two, &*M)
-            + self.a5.modpow(&two, &*M)
-            + self.a6.modpow(&two, &*M)
-            + self.a7.modpow(&two, &*M))
-            % &*M
+        let mut norm2 = BigInt::from(0);
+        for i in 0..8 {
+            norm2 += self[i].modpow(&two, &*M);
+        }
+        norm2 %= &*M;
+        return norm2;
     }
 }
 
@@ -209,23 +189,10 @@ impl Add for Octonion {
 
 impl AddAssign for Octonion {
     fn add_assign(&mut self, rhs: Self) {
-        self.a0 += rhs.a0;
-        self.a1 += rhs.a1;
-        self.a2 += rhs.a2;
-        self.a3 += rhs.a3;
-        self.a4 += rhs.a4;
-        self.a5 += rhs.a5;
-        self.a6 += rhs.a6;
-        self.a7 += rhs.a7;
-
-        self.a0 %= &*M;
-        self.a1 %= &*M;
-        self.a2 %= &*M;
-        self.a3 %= &*M;
-        self.a4 %= &*M;
-        self.a5 %= &*M;
-        self.a6 %= &*M;
-        self.a7 %= &*M;
+        for i in 0..8 {
+            self[i] += &rhs[i];
+            self[i] %= &*M;
+        }
     }
 }
 
@@ -288,45 +255,12 @@ impl Sub for Octonion {
 
 impl SubAssign for Octonion {
     fn sub_assign(&mut self, rhs: Self) {
-        self.a0 -= rhs.a0;
-        self.a1 -= rhs.a1;
-        self.a2 -= rhs.a2;
-        self.a3 -= rhs.a3;
-        self.a4 -= rhs.a4;
-        self.a5 -= rhs.a5;
-        self.a6 -= rhs.a6;
-        self.a7 -= rhs.a7;
-        self.a0 %= &*M;
-        self.a1 %= &*M;
-        self.a2 %= &*M;
-        self.a3 %= &*M;
-        self.a4 %= &*M;
-        self.a5 %= &*M;
-        self.a6 %= &*M;
-        self.a7 %= &*M;
-        if self.a0 < BigInt::default() {
-            self.a0 += &*M;
-        }
-        if self.a1 < BigInt::default() {
-            self.a1 += &*M;
-        }
-        if self.a2 < BigInt::default() {
-            self.a2 += &*M;
-        }
-        if self.a3 < BigInt::default() {
-            self.a3 += &*M;
-        }
-        if self.a4 < BigInt::default() {
-            self.a4 += &*M;
-        }
-        if self.a5 < BigInt::default() {
-            self.a5 += &*M;
-        }
-        if self.a6 < BigInt::default() {
-            self.a6 += &*M;
-        }
-        if self.a7 < BigInt::default() {
-            self.a7 += &*M;
+        for i in 0..8 {
+            self[i] -= &rhs[i];
+            self[i] %= &*M;
+            if self[i] < BigInt::from(0) {
+                self[i] += &*M;
+            }
         }
     }
 }
@@ -460,48 +394,14 @@ impl MulAssign for Octonion {
 impl Mul<Octonion> for &BigInt {
     type Output = Octonion;
     fn mul(self, rhs: Octonion) -> Self::Output {
-        let mut a0 = (rhs.a0 * self) % &*M;
-        let mut a1 = (rhs.a1 * self) % &*M;
-        let mut a2 = (rhs.a2 * self) % &*M;
-        let mut a3 = (rhs.a3 * self) % &*M;
-        let mut a4 = (rhs.a4 * self) % &*M;
-        let mut a5 = (rhs.a5 * self) % &*M;
-        let mut a6 = (rhs.a6 * self) % &*M;
-        let mut a7 = (rhs.a7 * self) % &*M;
-        if a0 < BigInt::from(0) {
-            a0 += &*M;
+        let mut ans = Octonion::zero();
+        for i in 0..8 {
+            ans[i] = (&rhs[i] * self) % &*M;
+            if ans[i] < BigInt::from(0) {
+                ans[i] += &*M;
+            }
         }
-        if a1 < BigInt::from(0) {
-            a1 += &*M;
-        }
-        if a2 < BigInt::from(0) {
-            a2 += &*M;
-        }
-        if a3 < BigInt::from(0) {
-            a3 += &*M;
-        }
-        if a4 < BigInt::from(0) {
-            a4 += &*M;
-        }
-        if a5 < BigInt::from(0) {
-            a5 += &*M;
-        }
-        if a6 < BigInt::from(0) {
-            a6 += &*M;
-        }
-        if a7 < BigInt::from(0) {
-            a7 += &*M;
-        }
-        Self::Output {
-            a0,
-            a1,
-            a2,
-            a3,
-            a4,
-            a5,
-            a6,
-            a7,
-        }
+        return ans;
     }
 }
 
