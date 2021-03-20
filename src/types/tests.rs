@@ -3,19 +3,19 @@ use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
 
 use super::*;
-use crate::consts::M9689;
+use crate::consts::M;
 
 impl Arbitrary for Octonion {
     fn arbitrary(_: &mut Gen) -> Self {
         let mut rng = rand::thread_rng();
-        let a0 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a1 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a2 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a3 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a4 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a5 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a6 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
-        let a7 = rng.gen_bigint_range(&BigInt::from(0), &M9689);
+        let a0 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a1 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a2 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a3 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a4 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a5 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a6 = rng.gen_bigint_range(&BigInt::from(0), &M);
+        let a7 = rng.gen_bigint_range(&BigInt::from(0), &M);
 
         Octonion {
             a0,
