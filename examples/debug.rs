@@ -1,53 +1,66 @@
 use num_bigint::BigInt;
 use octonion::crypto::Schema;
 use octonion::crypto::SecretKey;
-use octonion::crypto::{Plaintext, PublicKey};
+use octonion::crypto::{PlainText, PublicKey};
 use octonion::types::Octonion;
 
 fn main() {
     let schema = Schema::new_with_q(BigInt::from(5), 3);
-    let q = BigInt::from(5);
-    let q_bits = 3;
-    let aa = Octonion::new_with_bigint(
-        BigInt::from(0),
-        BigInt::from(3),
-        BigInt::from(2),
-        BigInt::from(4),
-        BigInt::from(0),
-        BigInt::from(2),
-        BigInt::from(3),
-        BigInt::from(4),
-    );
-    let sk = SecretKey {
-        q,
-        q_bits,
-        h: 1,
-        a: vec![aa.clone()],
-    };
-    let pk = new_from_sk(&sk);
-    println!("sk: {}, pk: {}", sk, pk);
-    let ct = schema.encrypt(
-        Plaintext {
-            value: BigInt::from(3),
-        },
-        &pk,
-    );
-    let mt = Octonion::new_with_bigint(
-        BigInt::from(4),
-        BigInt::from(4),
-        BigInt::from(3),
-        BigInt::from(2),
-        BigInt::from(0),
-        BigInt::from(2),
-        BigInt::from(0),
-        BigInt::from(4),
-    );
-    let ans = aa.clone().inverse().unwrap()
-        * (aa.clone() * (mt * (aa.clone() * (aa.clone().inverse().unwrap() * Octonion::ones()))));
-    println!("ans: {}", ans);
-    println!("ct: {}", ct);
-    let pt_hat = schema.decrypt(ct, &sk);
-    println!("pt: {}", pt_hat.value);
+    // schema.debug();
+    // let q = BigInt::from(5);
+    // let q_bits = 3;
+    // let aa = Octonion::new_with_bigint(
+    //     BigInt::from(0),
+    //     BigInt::from(3),
+    //     BigInt::from(2),
+    //     BigInt::from(4),
+    //     BigInt::from(0),
+    //     BigInt::from(2),
+    //     BigInt::from(3),
+    //     BigInt::from(4),
+    // );
+    // let sk = SecretKey {
+    //     q,
+    //     q_bits,
+    //     h: 1,
+    //     a: vec![aa.clone()],
+    // };
+    // let pk = new_from_sk(&sk);
+    // println!("sk: {}, pk: {}", sk, pk);
+    // let ct = schema.encrypt(
+    //     PlainText {
+    //         value: BigInt::from(3),
+    //     },
+    //     &pk,
+    // );
+    // let mt = Octonion::new_with_bigint(
+    //     BigInt::from(4),
+    //     BigInt::from(4),
+    //     BigInt::from(3),
+    //     BigInt::from(2),
+    //     BigInt::from(0),
+    //     BigInt::from(2),
+    //     BigInt::from(0),
+    //     BigInt::from(4),
+    // );
+    // let mt2 = Octonion::new_with_bigint(
+    //     BigInt::from(4),
+    //     BigInt::from(4),
+    //     BigInt::from(3),
+    //     BigInt::from(2),
+    //     BigInt::from(0),
+    //     BigInt::from(2),
+    //     BigInt::from(0),
+    //     BigInt::from(4),
+    // );
+    // let ans = aa.clone().inverse().unwrap()
+    //     * (aa.clone()
+    //         * (mt2.clone()
+    //             * (mt * (aa.clone() * (aa.clone().inverse().unwrap() * Octonion::ones())))));
+    // println!("ans: {}", ans);
+    // println!("ct: {}", ct);
+    // let pt_hat = schema.decrypt(ct, &sk);
+    // println!("pt: {}", pt_hat.value);
 }
 fn new_from_sk(sk: &SecretKey) -> PublicKey {
     let enc_fn = |x: Octonion, y: Octonion| {

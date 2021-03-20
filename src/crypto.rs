@@ -5,11 +5,16 @@ use num_bigint::BigInt;
 use num_bigint::RandBigInt;
 use rand;
 
+use crate::crypto::cipher_text::CipherText;
 use crate::types::Octonion;
 use crate::utils::gen_rand_octonion_which_has_inv;
 use crate::utils::inverse;
 use crate::utils::is_residue;
 use crate::utils::sqrt_with_mod;
+
+mod cipher_text;
+#[cfg(test)]
+mod tests;
 
 /// octonion schema
 #[derive(Debug, Clone)]
@@ -21,41 +26,20 @@ pub struct Schema {
 }
 
 #[derive(Debug, Clone)]
-pub struct Plaintext {
+pub struct PlainText {
     pub value: BigInt,
 }
 
 #[derive(Debug, Clone)]
-pub struct Mediamtext {
+pub struct MediamText {
     pub value: Octonion,
 }
 
-impl Display for Mediamtext {
+impl MediamText {}
+
+impl Display for MediamText {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(f, "{}", self.value)?;
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CipherText {
-    pub q: BigInt,
-    pub q_bits: u64,
-    /// coefficients f: O -> O
-    /// e[i][x] ((e00, e01, ..., e07), ..., (e70, e71, ..., e77))
-    pub e: Vec<Vec<BigInt>>,
-}
-
-impl Display for CipherText {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "q: {}, e:\n", self.q)?;
-        for ie in 0..8 {
-            write!(f, "ie{}", ie)?;
-            for ix in 0..8 {
-                write!(f, " {}", self.e[ie][ix])?;
-            }
-            write!(f, "\n")?;
-        }
         Ok(())
     }
 }
@@ -163,15 +147,15 @@ impl Schema {
         Self { q, q_bits, g, h }
     }
 
-    pub fn new_plaintext(&self, p: BigInt) -> Plaintext {
+    pub fn new_plaintext(&self, p: BigInt) -> PlainText {
         // TODO: validate Octonion over Fq
-        Plaintext { value: p }
+        PlainText { value: p }
     }
 
     /// generate secret key and public key
     pub fn gen_sk_pk(&self) -> (SecretKey, PublicKey) {
         // TODO: how to determin SecretKey.a.len()
-        let h = 10;
+        let h = 56;
         let a = {
             let mut a = Vec::with_capacity(h);
             for _ in 0..h {
@@ -189,7 +173,7 @@ impl Schema {
         return (sk, pk);
     }
 
-    pub fn encrypt(&self, pt: Plaintext, pk: &PublicKey) -> CipherText {
+    pub fn encrypt(&self, pt: PlainText, pk: &PublicKey) -> CipherText {
         let mt = self.p_to_m(pt);
         let mut e = vec![vec![BigInt::from(0); 8]; 8];
         for ie in 0..8 {
@@ -207,9 +191,9 @@ impl Schema {
         }
     }
 
-    pub fn decrypt(&self, ct: CipherText, sk: &SecretKey) -> Plaintext {
+    pub fn decrypt(&self, ct: CipherText, sk: &SecretKey) -> PlainText {
         // TODO: if rust implements #[feature(fn_traits)], impl Fn for SecretKey
-        let mut pt = Octonion::zero();
+        let mut mt = Octonion::zero();
         let mut x = Octonion::one();
         // A_1 ( ... (A_h 1) )
         for a in sk.a.iter().rev() {
@@ -218,32 +202,36 @@ impl Schema {
 
         for ie in 0..8 {
             for ix in 0..8 {
-                pt[ie] += &ct.e[ie][ix] * &x[ix];
+                mt[ie] += &ct.e[ie][ix] * &x[ix];
             }
-            pt[ie] %= &self.q;
+            mt[ie] %= &self.q;
         }
 
         // A_r^-1 ( ... (A_1^-1 pt) )
         for a in sk.a.iter() {
-            pt = a.inverse().unwrap() * pt;
+            mt = a.inverse().unwrap() * mt;
         }
 
-        Plaintext {
-            value: (2 * &pt[0]) % &self.q,
-        }
+        self.m_to_p(&MediamText { value: mt })
     }
 
     /// plaintext -> mediamtext
-    fn p_to_m(&self, p: Plaintext) -> Mediamtext {
+    fn p_to_m(&self, p: PlainText) -> MediamText {
         let mut rng = rand::thread_rng();
         let u = rng.gen_bigint_range(&BigInt::from(0), &self.q);
         let v = rng.gen_bigint_range(&BigInt::from(0), &self.q);
         let w = rng.gen_bigint_range(&BigInt::from(0), &self.q);
-        Mediamtext {
+        MediamText {
             value: &p.value * self.g.clone()
                 + &u * self.h.clone()
                 + &v * self.g.clone() * self.h.clone()
                 + &w * self.h.clone() * self.g.clone(),
+        }
+    }
+
+    fn m_to_p(&self, m: &MediamText) -> PlainText {
+        PlainText {
+            value: (2 * &m.value[0]) % &self.q,
         }
     }
 
@@ -392,6 +380,3 @@ impl Schema {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;
