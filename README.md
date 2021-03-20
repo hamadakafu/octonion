@@ -4,7 +4,7 @@
 - [x] ciphertext add
 - [x] ciphertext mul
 - [ ] refactor use octonion index access
-- [ ] use macro for change modulus
+- [ ] use feature dynamic const
 - [ ] benchmark
 
 # References
