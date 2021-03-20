@@ -1,20 +1,19 @@
-use std::{fmt::Display, fmt::Formatter, ops::Add, ops::Mul};
+use std::{fmt::Display, fmt::Formatter, ops::Add, ops::Mul, str::FromStr};
 
 use num_bigint::BigInt;
 
 use crate::types::Octonion;
 
 #[derive(Debug, Clone)]
-pub struct CipherText {
-    pub q: BigInt,
+pub struct CipherText<const MOD: &'static str> {
     /// coefficients f: O -> O
     /// e[i][x] ((e00, e01, ..., e07), ..., (e70, e71, ..., e77))
     pub e: Vec<Vec<BigInt>>,
 }
 
-impl Display for CipherText {
+impl<const MOD: &'static str> Display for CipherText<MOD> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "q: {}, e:\n", self.q)?;
+        write!(f, "e:\n")?;
         for ie in 0..8 {
             write!(f, "ie{}", ie)?;
             for ix in 0..8 {
@@ -26,16 +25,17 @@ impl Display for CipherText {
     }
 }
 
-impl<'a> Add<&CipherText> for &'a CipherText {
-    type Output = CipherText;
-    fn add(self, rhs: &CipherText) -> CipherText {
-        let enc_fn = |x: Octonion| -> Octonion {
+impl<'a, const MOD: &'static str> Add<&CipherText<MOD>> for &'a CipherText<MOD> {
+    type Output = CipherText<MOD>;
+    fn add(self, rhs: &CipherText<MOD>) -> CipherText<MOD> {
+        let m = BigInt::from_str(MOD).unwrap();
+        let enc_fn = |x: Octonion<MOD>| -> Octonion<MOD> {
             let mut ans = Octonion::zero();
             for ie in 0..8 {
                 for ix in 0..8 {
                     ans[ie] += &self.e[ie][ix] * &x[ix];
                     ans[ie] += &rhs.e[ie][ix] * &x[ix];
-                    ans[ie] %= &self.q;
+                    ans[ie] %= &m;
                 }
             }
             return ans;
@@ -50,23 +50,21 @@ impl<'a> Add<&CipherText> for &'a CipherText {
                 e[ie][ix] = ans[ie].clone();
             }
         }
-        return CipherText {
-            q: self.q.clone(),
-            e,
-        };
+        return CipherText { e };
     }
 }
 
 ///E(E(X, M_2), M_1) = A_1 ... M_1 M_2 ... X
-impl<'a> Mul<&CipherText> for &'a CipherText {
-    type Output = CipherText;
-    fn mul(self, rhs: &CipherText) -> CipherText {
-        let enc_fn = |x: Octonion| -> Octonion {
-            let mut ans_rhs = Octonion::zero();
+impl<'a, const MOD: &'static str> Mul<&CipherText<MOD>> for &'a CipherText<MOD> {
+    type Output = CipherText<MOD>;
+    fn mul(self, rhs: &CipherText<MOD>) -> CipherText<MOD> {
+        let m = BigInt::from_str(MOD).unwrap();
+        let enc_fn = |x: Octonion<MOD>| -> Octonion<MOD> {
+            let mut ans_rhs: Octonion<MOD> = Octonion::zero();
             for ie in 0..8 {
                 for ix in 0..8 {
                     ans_rhs[ie] += &rhs.e[ie][ix] * &x[ix];
-                    ans_rhs[ie] %= &self.q;
+                    ans_rhs[ie] %= &m;
                 }
             }
 
@@ -74,7 +72,7 @@ impl<'a> Mul<&CipherText> for &'a CipherText {
             for ie in 0..8 {
                 for ix in 0..8 {
                     ans_lhs[ie] += &self.e[ie][ix] * &ans_rhs[ix];
-                    ans_lhs[ie] %= &self.q;
+                    ans_lhs[ie] %= &m;
                 }
             }
             return ans_lhs;
@@ -89,9 +87,6 @@ impl<'a> Mul<&CipherText> for &'a CipherText {
                 e[ie][ix] = ans[ie].clone();
             }
         }
-        return CipherText {
-            q: self.q.clone(),
-            e,
-        };
+        return CipherText { e };
     }
 }

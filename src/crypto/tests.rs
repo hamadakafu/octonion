@@ -3,19 +3,22 @@ use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
 
 use super::*;
-use crate::consts::M;
+use crate::consts::M521_STR;
 
-impl Arbitrary for PlainText {
+const M: &'static str = M521_STR;
+
+impl<const MOD: &'static str> Arbitrary for PlainText<MOD> {
     fn arbitrary(_: &mut Gen) -> Self {
+        let m = BigInt::from_str(MOD).unwrap();
         let mut rng = rand::thread_rng();
-        let p: BigInt = rng.gen_bigint_range(&BigInt::from(0), &*M);
+        let p: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
         return PlainText { value: p };
     }
 }
 
 #[quickcheck]
-fn test_mediamtext_assosiative(a: PlainText, b: PlainText, c: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone());
+fn test_mediamtext_assosiative(a: PlainText<M>, b: PlainText<M>, c: PlainText<M>) -> bool {
+    let schema = Schema::new();
     let am = schema.p_to_m(a);
     let bm = schema.p_to_m(b);
     let cm = schema.p_to_m(c);
@@ -23,8 +26,8 @@ fn test_mediamtext_assosiative(a: PlainText, b: PlainText, c: PlainText) -> bool
 }
 
 #[quickcheck]
-fn test_encrypt_decrypt(pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone());
+fn test_encrypt_decrypt(pt: PlainText<M>) -> bool {
+    let schema = Schema::new();
     let (sk, pk) = schema.gen_sk_pk();
     let ct = schema.encrypt(pt.clone(), &pk);
     let pt_hat = schema.decrypt(ct, &sk);
@@ -40,14 +43,16 @@ fn test_encrypt_decrypt(pt: PlainText) -> bool {
 }
 
 #[quickcheck]
-fn test_encrypt_decrypt_add(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone());
+fn test_encrypt_decrypt_add(lhs_pt: PlainText<M>, rhs_pt: PlainText<M>) -> bool {
+    let m = BigInt::from_str(M).unwrap();
+
+    let schema = Schema::new();
     let (sk, pk) = schema.gen_sk_pk();
     let lhs_ct = schema.encrypt(lhs_pt.clone(), &pk);
     let rhs_ct = schema.encrypt(rhs_pt.clone(), &pk);
     let add_ct = &lhs_ct + &rhs_ct;
     let add_pt_hat = schema.decrypt(add_ct, &sk);
-    let ans = (&lhs_pt.value + &rhs_pt.value) % M.clone();
+    let ans = (&lhs_pt.value + &rhs_pt.value) % &m;
 
     if ans != add_pt_hat.value {
         println!("sk: {}", sk);
@@ -64,8 +69,10 @@ fn test_encrypt_decrypt_add(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
 }
 
 #[quickcheck]
-fn test_encrypt_decrypt_mul(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
-    let schema = Schema::new_with_q(M.clone());
+fn test_encrypt_decrypt_mul(lhs_pt: PlainText<M>, rhs_pt: PlainText<M>) -> bool {
+    let m = BigInt::from_str(M).unwrap();
+
+    let schema = Schema::new();
     let (sk, pk) = schema.gen_sk_pk();
     let lhs_ct = schema.encrypt(lhs_pt.clone(), &pk);
     let rhs_ct = schema.encrypt(rhs_pt.clone(), &pk);
@@ -73,7 +80,7 @@ fn test_encrypt_decrypt_mul(lhs_pt: PlainText, rhs_pt: PlainText) -> bool {
     assert_eq!(schema.decrypt(rhs_ct.clone(), &sk).value, rhs_pt.value);
     let mul_ct = &lhs_ct * &rhs_ct;
     let mul_pt_hat = schema.decrypt(mul_ct, &sk);
-    let ans = (&lhs_pt.value * &rhs_pt.value) % M.clone();
+    let ans = (&lhs_pt.value * &rhs_pt.value) % &m;
 
     if ans != mul_pt_hat.value {
         println!("sk: {}", sk);

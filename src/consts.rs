@@ -1,11 +1,3 @@
-use num_bigint::BigInt;
-use once_cell::sync::Lazy;
-use std::str::FromStr;
-
-pub const M: Lazy<BigInt> = Lazy::new(|| BigInt::from_str(M521_STR).unwrap());
-
-pub const FIVE: Lazy<BigInt> = Lazy::new(|| BigInt::from(5));
-
 /// 2 ** 31 - 1
 pub const M31_STR: &str = "2147483647";
 

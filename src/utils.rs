@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::Result;
 use num_bigint::BigInt;
 use num_bigint::RandBigInt;
@@ -128,16 +130,18 @@ pub fn is_residue(x: &BigInt, p: &BigInt) -> bool {
     x.modpow(&((p - BigInt::from(1)) / BigInt::from(2)), &p) == BigInt::from(1)
 }
 
-pub fn gen_rand_octonion_which_has_inv(q: &BigInt) -> Octonion {
+pub fn gen_rand_octonion_which_has_inv<const MOD: &'static str>() -> Octonion<MOD> {
+    let m = BigInt::from_str(MOD).unwrap();
+
     let mut rng = rand::thread_rng();
-    let a0: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a1: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a2: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a3: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a4: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a5: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let a6: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
-    let mut a7: BigInt = rng.gen_bigint_range(&BigInt::from(0), &q);
+    let a0: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a1: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a2: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a3: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a4: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a5: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let a6: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
+    let mut a7: BigInt = rng.gen_bigint_range(&BigInt::from(0), &m);
 
     let a = loop {
         let a = Octonion::new_with_bigint(
@@ -154,7 +158,7 @@ pub fn gen_rand_octonion_which_has_inv(q: &BigInt) -> Octonion {
             break a;
         }
         a7 += 1;
-        a7 %= q;
+        a7 %= &m;
     };
     return a;
 }
@@ -165,14 +169,16 @@ mod tests {
     use quickcheck_macros::quickcheck;
 
     use super::*;
-    use crate::consts::M;
+    use crate::consts::M521_STR;
     #[quickcheck]
     fn test_inverse(num: usize) -> bool {
-        let num = BigInt::from(num) % &*M;
+        let m = BigInt::from_str(M521_STR).unwrap();
+
+        let num = BigInt::from(num) % &m;
         if num == BigInt::from(0) {
             return true;
         }
-        (num.clone() * inverse(num.clone(), M.clone())) % M.clone() == BigInt::from(1)
+        (num.clone() * inverse(num.clone(), m.clone())) % m.clone() == BigInt::from(1)
     }
 
     // #[test]
@@ -182,19 +188,21 @@ mod tests {
 
     #[quickcheck]
     fn test_sqrt_with_mod(a: usize) -> bool {
+        let m = BigInt::from_str(M521_STR).unwrap();
+
         let mut a = BigInt::from(a);
-        a %= &*M;
+        a %= &m;
         if a < BigInt::default() {
-            a += &*M;
+            a += &m;
         }
-        if !is_residue(&a, &M) {
+        if !is_residue(&a, &m) {
             return true;
         }
-        if let Ok(r) = sqrt_with_mod(a.clone(), M.clone()) {
-            if r.modpow(&BigInt::from(2), &*M) != a {
-                println!("{} * {} !== {} mod {}", r, r, a, M.clone());
+        if let Ok(r) = sqrt_with_mod(a.clone(), m.clone()) {
+            if r.modpow(&BigInt::from(2), &m) != a {
+                println!("{} * {} !== {} mod {}", r, r, a, m.clone());
             }
-            r.modpow(&BigInt::from(2), &*M) == a
+            r.modpow(&BigInt::from(2), &m) == a
         } else {
             true
         }
@@ -215,6 +223,6 @@ mod tests {
 
     #[quickcheck]
     fn test_gen_rand_octonion_which_has_inv(_: usize) -> bool {
-        gen_rand_octonion_which_has_inv(&*M).has_inv()
+        gen_rand_octonion_which_has_inv::<M521_STR>().has_inv()
     }
 }

@@ -3,8 +3,7 @@
 
 - [x] ciphertext add
 - [x] ciphertext mul
-- [ ] refactor use octonion index access
-- [ ] use feature dynamic const
+- [x] use feature const generics
 - [ ] benchmark
 
 # References

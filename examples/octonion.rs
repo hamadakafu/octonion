@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 use octonion::types::Octonion;
 
 fn main() {
-    let a = Octonion {
+    let a = Octonion::<"5"> {
         a0: BigInt::from(0),
         a1: BigInt::from(0),
         a2: BigInt::from(0),

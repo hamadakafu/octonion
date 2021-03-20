@@ -1,3 +1,4 @@
+#![feature(const_generics)]
 use num_bigint::BigInt;
 use octonion::crypto::Schema;
 use octonion::crypto::SecretKey;
@@ -5,7 +6,7 @@ use octonion::crypto::{PlainText, PublicKey};
 use octonion::types::Octonion;
 
 fn main() {
-    let schema = Schema::new_with_q(BigInt::from(5));
+    let schema = Schema::<"5">::new();
     // schema.debug();
     // let q = BigInt::from(5);
     // let aa = Octonion::new_with_bigint(
@@ -60,8 +61,8 @@ fn main() {
     // let pt_hat = schema.decrypt(ct, &sk);
     // println!("pt: {}", pt_hat.value);
 }
-fn new_from_sk(sk: &SecretKey) -> PublicKey {
-    let enc_fn = |x: Octonion, y: Octonion| {
+fn new_from_sk<const MOD: &'static str>(sk: &SecretKey<MOD>) -> PublicKey<MOD> {
+    let enc_fn = |x: Octonion<MOD>, y: Octonion<MOD>| {
         let mut ans = x;
 
         // A_h^-1 ( ... ( A_1^-1 X ) )
@@ -91,8 +92,5 @@ fn new_from_sk(sk: &SecretKey) -> PublicKey {
             }
         }
     }
-    return PublicKey {
-        q: sk.q.clone(),
-        e,
-    };
+    return PublicKey { e };
 }
