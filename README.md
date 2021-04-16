@@ -9,5 +9,5 @@
 # References
 https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm
 
-Yagisawa, Masahiro. "Improved Fully Homomorphic Encryption without Bootstrapping." IACR Cryptol. ePrint Arch. 2017 (2017): 763.
+Yagisawa, M., & Yokohama-Shi, I. (2018). Fully homomorphic public-key encryption with small ciphertext size.
 
