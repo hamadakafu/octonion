@@ -1,9 +1,9 @@
-use std::{fmt::Formatter, str::FromStr};
 use std::ops::{Index, IndexMut};
 use std::{
     fmt::Display,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
+use std::{fmt::Formatter, str::FromStr};
 
 use num_bigint;
 use num_bigint::BigInt;
@@ -13,7 +13,7 @@ use crate::utils::inverse;
 #[cfg(test)]
 mod tests;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Octonion<const MOD: &'static str> {
     pub a0: BigInt,
     pub a1: BigInt,

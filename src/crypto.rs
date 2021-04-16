@@ -196,7 +196,7 @@ impl<const MOD: &'static str> Schema<MOD> {
     }
 
     /// plaintext -> mediamtext
-    fn p_to_m(&self, p: PlainText<MOD>) -> MediamText<MOD> {
+    pub fn p_to_m(&self, p: PlainText<MOD>) -> MediamText<MOD> {
         let m = BigInt::from_str(MOD).unwrap();
 
         let mut rng = rand::thread_rng();
@@ -211,7 +211,7 @@ impl<const MOD: &'static str> Schema<MOD> {
         }
     }
 
-    fn m_to_p(&self, mt: &MediamText<MOD>) -> PlainText<MOD> {
+    pub fn m_to_p(&self, mt: &MediamText<MOD>) -> PlainText<MOD> {
         let m = BigInt::from_str(MOD).unwrap();
 
         PlainText {
